@@ -127,7 +127,7 @@
         '      <ul class="kokuu-badges">',
         '        <li><span class="px-grass"></span>皮肤库</li>',
         '        <li><span class="px-water"></span>登录验证</li>',
-        '        <li><span class="px-moon"></span>月下上线</li>',
+        '        <li><span class="px-moon"></span>像素工坊</li>',
         '      </ul>',
         '    </div>',
         /* 右侧：可自定义图片位 / 内置 MC 场景轮播 */
