@@ -81,10 +81,14 @@
     var asset = base + "/plugins/kokuu-home/assets/";
     var cfg = readConfig();
     var theme = currentTheme();
-    // 右侧图片：自定义优先，否则内置像素插画
-    var heroImg = cfg.hero_image
+    // 右侧图片：仅当后台确实填了自定义图时才用单图模式；
+    // 未填（空字符串）→ useCustom=false → 走内置 MC 场景轮播。
+    // 切勿在此给 heroImg 兜底成内置插画，否则下方 heroImg ? ... : SCENES
+    // 永远为真，轮播的 6 张图/圆点/进度条都不会被渲染。
+    var useCustom = !!cfg.hero_image;
+    var heroImg = useCustom
       ? (/^https?:\/\//i.test(cfg.hero_image) ? cfg.hero_image : base + "/" + cfg.hero_image.replace(/^\/+/, ""))
-      : asset + "moon-columbina.png";
+      : "";
 
     try {
       var fi = document.querySelector(
@@ -133,19 +137,19 @@
         /* 右侧：可自定义图片位 / 内置 MC 场景轮播 */
         '    <div class="kokuu-hero-art">',
         '      <figure class="kokuu-shot" id="kokuu-shot">',
-        heroImg
+        useCustom
           ? '        <img src="' + esc(heroImg) + '" alt="首页配图" class="kokuu-shot-img kokuu-shot-single">'
           : SCENES.map(function (s, i) {
               return '        <img src="' + esc(asset + s.file) + '" alt="' + esc(s.name) +
                      '" class="kokuu-shot-img' + (i === 0 ? " is-on" : "") + '" data-i="' + i + '">';
             }).join("\n"),
         '        <div class="kokuu-shot-cap" id="kokuu-shot-cap">' +
-          (heroImg
+          (useCustom
             ? '<span class="px-moon"></span>自定义图片'
             : '<span class="px-grass"></span><span id="kokuu-cap-name">' + esc(SCENES[0].name) +
               '</span><em id="kokuu-cap-tag">' + esc(SCENES[0].tag) + '</em>') +
         '        </div>',
-        heroImg ? '' :
+        useCustom ? '' :
         '        <div class="kokuu-dots" id="kokuu-dots">' +
           SCENES.map(function (s, i) {
             return '<button type="button" class="kokuu-dot' + (i === 0 ? " is-on" : "") +
