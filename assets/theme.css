@@ -1,0 +1,464 @@
+/* =========================================================
+   KOKUU 全站后台主题（深度精修版）
+   把 Blessing Skin 的 AdminLTE 外壳（用户中心 / 皮肤库 / 后台）
+   以及 React SPA 内容区（皮肤卡片、衣柜、表格、分页、Modal 等）
+   统一重皮肤为 KOKUU 视觉语言。
+
+   说明：React 组件大量使用 @emotion/styled（CSS-in-JS），样式编译成
+   随机 hash class 在运行时注入 <head> 末尾。为稳定覆盖这些组件级样式，
+   本文件统一使用「父级/通用类 + !important」策略。
+
+   仅做视觉统一，不改动 React 内容区逻辑与内核源码。
+   由 KokuuHome 插件注入到所有页面（request()->is('*')）。
+   ========================================================= */
+
+:root {
+  --paper:    #F5F3EE;
+  --paper-2:  #FCFBF8;
+  --ink:      #2B1F52;
+  --rain:     #0FA3A3;
+  --lilac:    #8B7FD4;
+  --ink-70:   rgba(43, 31, 82, 0.70);
+  --ink-45:   rgba(43, 31, 82, 0.45);
+  --ink-12:   rgba(43, 31, 82, 0.12);
+  --ink-08:   rgba(43, 31, 82, 0.08);
+  --ink-04:   rgba(43, 31, 82, 0.045);
+  --radius-card: 16px;
+  --radius-btn:  10px;
+  --shadow-card:  0 18px 40px -28px rgba(43, 31, 82, 0.45);
+  --shadow-hover: 0 26px 54px -26px rgba(43, 31, 82, 0.55);
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+          "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+}
+
+/* KokuuSkin 双色字标（纯文字品牌，无 logo 图片） */
+.kokuu-accent { color: var(--rain); }
+
+/* ---------- 字体 ---------- */
+body, .wrapper, .content-wrapper, .main-header, .main-sidebar, .main-footer {
+  font-family: var(--sans);
+}
+
+/* ---------- 顶栏导航（皮肤库 / 后台） ---------- */
+.main-header,
+.main-header.navbar {
+  background: var(--ink) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.10) !important;
+}
+.main-header .navbar-brand,
+.main-header .nav-link,
+.main-header .navbar-nav > li > a,
+.main-header .navbar-nav > .nav-item > .nav-link {
+  color: #F5F3EE !important;
+}
+.main-header .navbar-brand { font-weight: 800; letter-spacing: 0.3px; }
+.main-header .nav-link {
+  border-radius: 8px !important;
+  padding: 0.45rem 0.7rem !important;
+}
+.main-header .nav-link:hover,
+.main-header .navbar-nav > li > a:hover,
+.main-header .navbar-nav > .nav-item > .nav-link:hover {
+  background: rgba(255, 255, 255, 0.12) !important;
+  color: #ffffff !important;
+}
+.main-header .nav-item.active > .nav-link,
+.main-header .navbar-nav > .active > a {
+  color: var(--rain) !important;
+}
+.main-header .dropdown-menu {
+  border-radius: 12px;
+  border: 1px solid var(--ink-12);
+  box-shadow: 0 20px 44px -26px rgba(43, 31, 82, 0.6);
+  overflow: hidden;
+}
+
+/* ---------- 侧边栏（用户中心 / 后台） ---------- */
+.main-sidebar,
+.sidebar,
+.sidebar-dark-primary,
+.sidebar-no-expand {
+  background: linear-gradient(180deg, #2B1F52 0%, #1c1638 100%) !important;
+}
+.brand-link {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12) !important;
+  color: #F5F3EE !important;
+  padding: 0.9rem 1rem !important;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+}
+.sidebar a,
+.nav-sidebar .nav-link,
+.nav-sidebar .nav-item > .nav-link,
+.user-panel .info a {
+  color: rgba(245, 243, 238, 0.82) !important;
+}
+.nav-sidebar .nav-link {
+  border-radius: 10px !important;
+  margin: 2px 8px !important;
+  padding: 0.55rem 0.8rem !important;
+}
+.nav-sidebar .nav-item { margin-bottom: 2px; }
+.nav-sidebar .nav-link:hover,
+.nav-sidebar .nav-item > .nav-link:hover,
+.sidebar a:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: #ffffff !important;
+}
+.nav-sidebar .nav-link.active,
+.nav-sidebar .nav-item.menu-open > .nav-link,
+.nav-sidebar .nav-item > .nav-link.active {
+  background: var(--rain) !important;
+  color: #ffffff !important;
+}
+.user-panel {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+.user-panel .info a { font-weight: 600; }
+
+/* ---------- 内容区纸底 ---------- */
+.content-wrapper,
+.wrapper {
+  background: var(--paper);
+}
+.main-footer {
+  background: #ffffff;
+  border-top: 1px solid var(--ink-12) !important;
+  color: var(--ink-45);
+}
+
+/* ---------- 区块标题 ---------- */
+.content-header h1,
+section.content h1 {
+  color: var(--ink) !important;
+  font-weight: 800 !important;
+  font-size: 1.7rem !important;
+  letter-spacing: -0.01em;
+}
+
+/* =========================================================
+   卡片（核心：覆盖 emotion 生成的皮肤/衣柜卡片样式）
+   ========================================================= */
+.card {
+  background: #ffffff !important;
+  border: 1px solid var(--ink-12) !important;
+  border-radius: var(--radius-card) !important;
+  box-shadow: var(--shadow-card) !important;
+  overflow: hidden;
+}
+/* emotion 的 Item Card 设了 .card-body{background:#eff1f0}，统一改为 KOKUU 纸白 */
+.card .card-body {
+  background: var(--paper-2) !important;
+}
+.card .card-header {
+  background: #ffffff !important;
+  border-bottom: 1px solid var(--ink-12) !important;
+  padding: 0.85rem 1.15rem !important;
+}
+.card .card-footer {
+  background: transparent !important;
+  border-top: 1px solid var(--ink-08) !important;
+  padding: 0.75rem 1rem !important;
+}
+.card-title {
+  color: var(--ink) !important;
+  font-weight: 800 !important;
+  font-size: 1.05rem !important;
+}
+
+/* 语义色卡片头部（card-primary / card-warning / card-info）统一墨紫渐变 */
+.card.card-primary > .card-header,
+.card.card-info > .card-header,
+.card.card-warning > .card-header,
+.card.card-success > .card-header {
+  background: linear-gradient(90deg, var(--ink) 0%, #3B2B6B 100%) !important;
+  border-bottom: none !important;
+  color: #F5F3EE !important;
+}
+.card.card-primary > .card-header .card-title,
+.card.card-info > .card-header .card-title,
+.card.card-warning > .card-header .card-title,
+.card.card-success > .card-header .card-title {
+  color: #F5F3EE !important;
+}
+
+/* 皮肤预览图：完整显示（不清空角色），统一高度与圆角 */
+.card .card-img-top {
+  height: 210px !important;
+  width: 100% !important;
+  object-fit: contain !important;
+  padding: 10px !important;
+  background: transparent !important;
+}
+
+/* 网格卡片 hover 抬升（皮肤库列表 / 衣柜） */
+.d-flex.flex-wrap > .card,
+.d-flex.flex-wrap > a > .card {
+  transition: transform 0.28s ease, box-shadow 0.28s ease !important;
+}
+.d-flex.flex-wrap > .card:hover,
+.d-flex.flex-wrap > a > .card:hover {
+  transform: translateY(-4px) !important;
+  box-shadow: var(--shadow-hover) !important;
+}
+.card:hover {
+  box-shadow: var(--shadow-hover) !important;
+}
+
+/* ---------- 徽章 ---------- */
+.badge {
+  border-radius: 999px !important;
+  padding: 0.38em 0.72em !important;
+  font-weight: 600 !important;
+  font-size: 78% !important;
+  letter-spacing: 0.02em;
+}
+.badge.bg-teal,
+.badge.bg-primary,
+.badge.bg-info {
+  background: var(--rain) !important;
+  color: #ffffff !important;
+}
+.badge.bg-indigo {
+  background: var(--lilac) !important;
+  color: #ffffff !important;
+}
+.badge.bg-olive,
+.badge.bg-success {
+  background: var(--rain) !important;
+  color: #ffffff !important;
+}
+.badge.bg-warning {
+  background: var(--lilac) !important;
+  color: #ffffff !important;
+}
+
+/* ---------- 按钮 ---------- */
+.btn {
+  border-radius: var(--radius-btn) !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.01em;
+}
+.btn-primary,
+.btn-info {
+  background: var(--rain) !important;
+  border-color: var(--rain) !important;
+  color: #ffffff !important;
+}
+.btn-primary:hover,
+.btn-info:hover,
+.btn-primary:focus,
+.btn-info:focus {
+  background: var(--ink) !important;
+  border-color: var(--ink) !important;
+  color: #ffffff !important;
+}
+.btn-success {
+  background: var(--rain) !important;
+  border-color: var(--rain) !important;
+  color: #ffffff !important;
+}
+.btn-secondary {
+  background: var(--ink-08) !important;
+  border-color: transparent !important;
+  color: var(--ink) !important;
+}
+.btn-secondary.active,
+.btn-secondary:focus,
+.btn-secondary:hover {
+  background: var(--ink) !important;
+  color: #ffffff !important;
+}
+/* 皮肤库排序按钮（Button.tsx 生成 bg-olive） */
+.btn.bg-olive {
+  background: var(--ink-08) !important;
+  color: var(--ink) !important;
+  border: 1px solid var(--ink-12) !important;
+}
+.btn.bg-olive.active,
+.btn.bg-olive:hover {
+  background: var(--rain) !important;
+  color: #ffffff !important;
+  border-color: var(--rain) !important;
+}
+.btn-warning {
+  background: var(--lilac) !important;
+  border-color: var(--lilac) !important;
+  color: #ffffff !important;
+}
+.btn-warning:hover {
+  background: var(--ink) !important;
+  border-color: var(--ink) !important;
+}
+.btn-danger { border-radius: var(--radius-btn) !important; }
+.btn-default {
+  background: #ffffff !important;
+  border: 1px solid var(--ink-12) !important;
+  color: var(--ink) !important;
+}
+.btn-default:hover {
+  background: var(--ink-08) !important;
+  color: var(--ink) !important;
+}
+.btn-outline-primary,
+.btn-outline-info,
+.btn-outline-success {
+  color: var(--rain) !important;
+  border-color: var(--rain) !important;
+}
+.btn-outline-primary:hover,
+.btn-outline-info:hover,
+.btn-outline-success:hover {
+  background: var(--rain) !important;
+  color: #ffffff !important;
+}
+.btn-outline-secondary {
+  border-color: var(--ink-12) !important;
+  color: var(--ink) !important;
+}
+.btn-group .btn { margin-left: -1px; }
+
+/* ---------- 表单控件 ---------- */
+.form-control,
+.input-group .form-control {
+  border-radius: var(--radius-btn) !important;
+  border: 1.5px solid var(--ink-12) !important;
+}
+.form-control:focus {
+  border-color: var(--rain) !important;
+  box-shadow: 0 0 0 0.2rem rgba(15, 163, 163, 0.18) !important;
+}
+.form-control::placeholder { color: var(--ink-45); }
+.input-group-prepend .btn,
+.input-group-append .btn {
+  border-radius: var(--radius-btn) !important;
+  background: var(--ink-08) !important;
+  border-color: var(--ink-12) !important;
+  color: var(--ink) !important;
+}
+.input-group-text {
+  background: var(--ink-08) !important;
+  border-color: var(--ink-12) !important;
+}
+label {
+  color: var(--ink-70);
+  font-weight: 600;
+}
+
+/* ---------- 表格（后台列表） ---------- */
+.table-responsive { border-radius: 12px; }
+.table thead th {
+  background: var(--ink-04) !important;
+  color: var(--ink) !important;
+  font-weight: 700 !important;
+  border-bottom: 2px solid var(--ink-12) !important;
+  padding: 0.8rem !important;
+  letter-spacing: 0.02em;
+}
+.table td {
+  padding: 0.85rem 0.8rem !important;
+  vertical-align: middle !important;
+  border-top: 1px solid var(--ink-08) !important;
+}
+.table td, .table th { border-color: var(--ink-08) !important; }
+.table-striped tbody tr:nth-of-type(odd) { background: #FBFAF7 !important; }
+.table-hover tbody tr:hover { background: var(--ink-08) !important; }
+
+/* ---------- 分页器 ---------- */
+.pagination { gap: 4px; padding-top: 0.25rem; }
+.pagination .page-link {
+  border: none !important;
+  border-radius: 10px !important;
+  color: var(--ink) !important;
+  background: var(--ink-04) !important;
+  padding: 0.45rem 0.8rem !important;
+  margin: 0 2px !important;
+  font-weight: 600;
+}
+.pagination .page-item.active .page-link {
+  background: var(--ink) !important;
+  color: #ffffff !important;
+}
+.pagination .page-link:hover {
+  background: var(--rain) !important;
+  color: #ffffff !important;
+}
+.pagination .page-item.disabled .page-link { opacity: 0.45; }
+
+/* ---------- 弹窗 Modal ---------- */
+.modal-content {
+  border-radius: 18px !important;
+  border: none !important;
+  box-shadow: 0 30px 70px -30px rgba(43, 31, 82, 0.6) !important;
+  overflow: hidden;
+}
+.modal-header {
+  border-bottom: 1px solid var(--ink-12) !important;
+  padding: 1rem 1.25rem !important;
+}
+.modal-title {
+  color: var(--ink) !important;
+  font-weight: 800 !important;
+}
+.modal-body {
+  padding: 1.1rem 1.25rem !important;
+  color: var(--ink-70);
+}
+.modal-footer {
+  border-top: 1px solid var(--ink-12) !important;
+  padding: 0.85rem 1.25rem !important;
+}
+
+/* ---------- Toast 提示 ---------- */
+.toast {
+  border-radius: 14px !important;
+  border: none !important;
+  box-shadow: 0 20px 44px -22px rgba(43, 31, 82, 0.5) !important;
+  overflow: hidden;
+}
+.toast-header {
+  background: var(--ink) !important;
+  color: #F5F3EE !important;
+  border-bottom: none !important;
+}
+.toast-body {
+  background: #ffffff;
+  color: var(--ink);
+}
+
+/* ---------- 加载遮罩 / 空状态 ---------- */
+.overlay,
+.card > .overlay {
+  background: rgba(245, 243, 238, 0.72) !important;
+  border-radius: var(--radius-card) !important;
+}
+.fa-spinner,
+.spinner-border {
+  color: var(--rain) !important;
+}
+.text-center.m-5,
+.card-body.text-center {
+  color: var(--ink-45) !important;
+}
+
+/* ---------- 滚动条 ---------- */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: rgba(43, 31, 82, 0.22);
+  border-radius: 999px;
+  border: 2px solid var(--paper);
+}
+::-webkit-scrollbar-thumb:hover { background: rgba(43, 31, 82, 0.38); }
+
+/* ---------- 链接 ---------- */
+a { color: var(--rain); }
+a:hover { color: var(--ink); }
+.text-primary { color: var(--ink) !important; }
+.text-info { color: var(--rain) !important; }
+
+
+/* =========================================================
+   深色模式：完整的「虚空」主题定义在 void.css（body.dark-mode），
+   本文件不再定义深色规则，统一由 void.css 接管，避免冲突。
+   ========================================================= */
