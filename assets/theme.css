@@ -462,3 +462,234 @@ a:hover { color: var(--ink); }
    深色模式：完整的「虚空」主题定义在 void.css（body.dark-mode），
    本文件不再定义深色规则，统一由 void.css 接管，避免冲突。
    ========================================================= */
+
+/* =========================================================
+   移动端适配（≤ 992px）
+
+   ------------------------------------------------------------
+   【根因】用户反馈「顶部那排按钮在手机上变成竖的」，这不是错觉，
+   是Bootstrap 4 grid 与 AdminLTE 断点配置冲突导致的**必然**结果。
+
+   内核 header.twig 写的是：
+       <nav class="main-header navbar navbar-expand navbar-cyan navbar-dark">
+   注意 `navbar-expand` **后面没有断点后缀**（不是 -sm/-md/-lg/-xl）。
+
+   于是在压缩后的 app.css 里同时命中两条规则：
+
+     .navbar-expand .navbar-collapse {
+       display: flex !important;      ← ① 永远展开，忽略断点
+       flex-basis: auto;
+     }
+
+     @media (min-width: 992px) {
+       .navbar-expand .navbar-nav {
+         flex-direction: row;         ← ② 只在 ≥992px 才横排
+       }
+     }
+
+   ①让容器永远横排显示，② 却在窄屏把 flex-direction 打回 Bootstrap 默认的
+   `column`。两条规则一叠加 → **≤992px 时 navbar-nav 就是竖的**。
+
+   另外内核**没有渲染 navbar-toggler**（实测 skinlib 页
+   `has navbar-toggler? False`），所以即使 collapse 被折叠也没有按钮能展开它。
+   这是内核模板的设计，我们不改内核，改用 CSS 补齐。
+
+   【方案】
+   窄屏下把顶栏改成「双层结构」：
+     第一层：品牌 + 汉堡 + 上传/通知/语言/用户（右侧固定，不换行）
+     第二层：主导航（皮肤库/ 我的衣柜 / 用户中心）横排 + 可横向滚动
+   这样主导航仍是横排（不再是竖排），且不会把右侧功能区挤没。
+   ========================================================= */
+@media (max-width: 992px) {
+  /* ---- 通用：所有 navbar-nav 强制横排 ----
+   * 这一条直接对症下药，覆盖上面 ② 缺失导致的方向回退。
+   * 桌面端不受影响（同样成立，只是本来就该是 row）。
+   */
+  .main-header.navbar .navbar-nav,
+  .main-header.navbar .nav.navbar-nav {
+    flex-direction: row !important;
+    flex-wrap: nowrap;
+    align-items: center;
+  }
+  /* dropdown 的浮层必须相对定位到父级，否则会被 overflow 裁掉 */
+  .main-header.navbar .navbar-nav .dropdown-menu {
+    position: absolute;
+  }
+
+  /* =========================================================
+     一、侧栏版布局（用户中心 / 管理后台）
+     结构：<ul.navbar-nav>（汉堡） + <ul.navbar-nav.ml-auto>（右侧功能）
+     这层内容不多，横向排开即可。
+     ========================================================= */
+  body.kokuu-apple:not(.layout-top-nav) .main-header.navbar {
+    flex-wrap: nowrap;
+    min-height: 52px;
+  }
+  body.kokuu-apple:not(.layout-top-nav) .main-header.navbar > .navbar-nav {
+    flex: 0 0 auto;
+  }
+  body.kokuu-apple:not(.layout-top-nav) .main-header.navbar > .navbar-nav.ml-auto {
+    /* ml-auto 在窄屏会把右侧功能全推到视口外，改为常规间距 */
+    margin-left: auto !important;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  body.kokuu-apple:not(.layout-top-nav) .main-header.navbar > .navbar-nav.ml-auto::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* =========================================================
+     二、顶栏导航版布局（皮肤库 / skinlib）
+     结构：.navbar-header(品牌) > .navbar-collapse(主导航) + .navbar-custom-menu(右侧)
+     这里必须**两层化**，否则主导航和右侧功能挤在一行必然溢出。
+
+     实现方式：把 .container 改成 flex-wrap: wrap 的两行容器，
+     第一行 = 品牌 + 自定义菜单（justify-content: space-between），
+     第二行 = .navbar-collapse 占满整行并横向滚动。
+     ========================================================= */
+  body.kokuu-apple.layout-top-nav .main-header.navbar > .container {
+    flex-wrap: wrap;
+    align-items: center;
+    row-gap: 0;
+  }
+
+  /* 主导航：独占第二行，横排 + 可滑动 */
+  body.kokuu-apple.layout-top-nav .navbar-collapse {
+    /* 覆盖 .navbar-expand .navbar-collapse 的 flex-basis:auto，
+       改为 100% 强制换行到第二行 */
+    flex: 0 0 100%;
+    order: 3;
+    width: 100%;
+    padding: 0;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  body.kokuu-apple.layout-top-nav .navbar-collapse::-webkit-scrollbar {
+    display: none;
+  }
+  body.kokuu-apple.layout-top-nav .navbar-collapse .navbar-nav {
+    flex-wrap: nowrap;
+    min-width: max-content;
+  }
+  body.kokuu-apple.layout-top-nav .navbar-collapse .nav-link {
+    padding: 0.5rem 0.85rem !important;
+    font-size: 14px;
+    white-space: nowrap;
+    /* 加大点击区：手机上低于 36px 很难点准 */
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+    border-radius: 8px !important;
+  }
+
+  /* 右侧功能区（上传 / 通知 / 语言 / 用户）：第一行靠右 */
+  body.kokuu-apple.layout-top-nav .navbar-custom-menu {
+    margin-left: auto;
+    order: 2;
+  }
+  body.kokuu-apple.layout-top-nav .navbar-custom-menu > .navbar-nav {
+    flex-wrap: nowrap;
+  }
+
+  /* 品牌区：第二行会让它显得孤立，给个最小宽度防挤压 */
+  body.kokuu-apple.layout-top-nav .navbar-header {
+    order: 1;
+    flex: 0 0 auto;
+    margin-right: auto;
+  }
+  body.kokuu-apple.layout-top-nav .navbar-brand {
+    font-size: 16px;
+    padding: 0;
+    margin-right: 0;
+  }
+
+  /* =========================================================
+     三、点击区与图标尺寸（两种布局共用）
+     ========================================================= */
+  .main-header.navbar .nav-link {
+    white-space: nowrap;
+    border-radius: 8px !important;
+    /* 上面的行高统一，避免文字项与纯图标项高度不一 */
+    min-height: 38px;
+  }
+  .main-header.navbar .nav-link > .fas,
+  .main-header.navbar .nav-link > .far {
+    font-size: 15px;
+  }
+  .main-header .user-menu .nav-link {
+    padding: 0.3rem 0.45rem !important;
+  }
+  .main-header .user-menu .bs-avatar {
+    width: 30px !important;
+    height: 30px !important;
+  }
+}
+
+/* =========================================================
+   超窄屏（≤ 420px）：进一步瘦身
+   ========================================================= */
+@media (max-width: 420px) {
+  /* 顶栏纵向留白压缩，把高度让给内容。
+     移动端浏览器地址栏会吃掉一大块可视高度，
+     顶栏每省 1px 都是实打实的可视面积。 */
+  .main-header.navbar {
+    min-height: 46px;
+  }
+  .main-header.navbar .nav-link {
+    padding: 0.45rem 0.5rem !important;
+    font-size: 13px;
+  }
+  .main-header.navbar .nav-link > .fas,
+  .main-header.navbar .nav-link > .far {
+    font-size: 14px;
+  }
+
+  /* 皮肤库第二行导航再收窄一点，让「Skin Library」不被截太狠 */
+  body.kokuu-apple.layout-top-nav .navbar-collapse .nav-link {
+    padding: 0.45rem 0.6rem !important;
+    font-size: 13px;
+  }
+
+  /* 内容区左右留白收窄，卡片能占更多宽度 */
+  .content-wrapper,
+  .main-content,
+  .content {
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+  }
+
+  /* 顶栏下方若有面包屑，移动端空间金贵，隐藏它 */
+  .content-header .breadcrumb {
+    display: none;
+  }
+}
+
+/* =========================================================
+   移动端侧边栏
+   ========================================================= */
+@media (max-width: 992px) {
+  /*
+   * AdminLTE 的侧边栏在移动端是「抽屉」：默认 translateX(-100%) 移出屏幕，
+   * 点汉堡按钮后加 .sidebar-open 类滑进来。
+   * 但它默认**占满整个视口宽度**，在手机上把内容全挡住，
+   * 且关闭手势不自然。这里限宽成抽屉式，露出一点内容提示可右滑关闭。
+   */
+  .main-sidebar {
+    max-width: 86vw;
+    width: 86vw !important;
+  }
+  /*
+   * 侧边栏导航项加大点击区：手机上手指粗，
+   * AdminLTE 默认的 .55rem 上下内边距（约 17px 高）偏小，实测易误触相邻项。
+   */
+  .nav-sidebar .nav-link {
+    padding: 0.7rem 0.9rem !important;
+    font-size: 15px;
+  }
+  /* 移动端不需要树的缩进层级感（侧边栏本身就窄） */
+  .nav-sidebar .nav-child-indent .nav-link {
+    padding-left: 1.4rem !important;
+  }
+}

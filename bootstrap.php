@@ -129,6 +129,19 @@ return function ($plugin) {
                     'contact_email' => (string) $request->input('contact_email', ''),
                 ]);
 
+                // ⚠️ 必须删掉 storage/options.php，否则配置永远不生效。
+                //
+                // Blessing Skin 的 App\Services\Option 构造函数**优先读这个文件**，
+                // 存在即 return，根本不查数据库。所以只要它在，
+                // 上面set() 写进 DB 的值永远读不出来
+                // （表现为「保存成功但首页不变」）。
+                // 内核自己也是这么处理的（UpdateController 升级时删同一文件）。
+                //
+                // 用 delete 而不是重新生成：重建需要 Artisan::call('options:cache')，
+                // 在 HTTP 请求里跑 Artisan 既慢又有副作用；直接删掉即可，
+                // 下次任意请求会走 DB 分支自动重建，功能不受影响。
+                @unlink(storage_path('options.php'));
+
                 return response()->json([
                     'code'    => 0,
                     'message' => 'Saved.',
