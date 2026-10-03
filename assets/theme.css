@@ -495,15 +495,28 @@ a:hover { color: var(--ink); }
    这是内核模板的设计，我们不改内核，改用 CSS 补齐。
 
    【方案】
-   窄屏下把顶栏改成「双层结构」：
-     第一层：品牌 + 汉堡 + 上传/通知/语言/用户（右侧固定，不换行）
-     第二层：主导航（皮肤库/ 我的衣柜 / 用户中心）横排 + 可横向滚动
-   这样主导航仍是横排（不再是竖排），且不会把右侧功能区挤没。
+   窄屏下把顶栏主导航改成横排。实测（ops/lab.js，390px 视口 + 线上真实
+   DOM + 线上真实 app.css）基线状态为：
+
+       Skin Library  y=8
+       Closet        y=48     ← mainNavIsRow: false，确认竖排
+
+   改成横排后主导航独占一行（可横向滑动），品牌与右侧功能区留在第一行。
+   这样主导航不再是竖排，也不会把右侧功能区挤没。
+
+   ⚠️ 选择器作用域：**不要用 body.kokuu-apple**。
+   实测线上 /skinlib 与 /admin 的 body class 分别是
+       hold-transition layout-top-nav
+       hold-transition sidebar-mini
+   `kokuu-apple` 这个类**在整个项目里从未被任何 PHP 添加过**，
+   只在 CSS 里出现过（kokuu-ui/apple.css、motion.css 也一样是死代码）。
+   上一轮所有规则都挂在 `body.kokuu-apple.*` 下 → 一条都没匹配上，
+   这就是用户反馈「首页那排按钮还是原样没有变」的直接原因。
    ========================================================= */
-@media (max-width: 992px) {
+@media (max-width: 991.98px) {
   /* ---- 通用：所有 navbar-nav 强制横排 ----
-   * 这一条直接对症下药，覆盖上面 ② 缺失导致的方向回退。
-   * 桌面端不受影响（同样成立，只是本来就该是 row）。
+   * 这一条直接对症下药，覆盖 app.css 里缺失的窄屏方向声明。
+   * 桌面端（≥992px）本就是 row，此处无副作用。
    */
   .main-header.navbar .navbar-nav,
   .main-header.navbar .nav.navbar-nav {
@@ -511,50 +524,26 @@ a:hover { color: var(--ink); }
     flex-wrap: nowrap;
     align-items: center;
   }
-  /* dropdown 的浮层必须相对定位到父级，否则会被 overflow 裁掉 */
+  /* dropdown 浮层必须相对定位到父级，否则窄屏会被 overflow 裁掉 */
   .main-header.navbar .navbar-nav .dropdown-menu {
     position: absolute;
   }
 
   /* =========================================================
-     一、侧栏版布局（用户中心 / 管理后台）
-     结构：<ul.navbar-nav>（汉堡） + <ul.navbar-nav.ml-auto>（右侧功能）
-     这层内容不多，横向排开即可。
-     ========================================================= */
-  body.kokuu-apple:not(.layout-top-nav) .main-header.navbar {
-    flex-wrap: nowrap;
-    min-height: 52px;
-  }
-  body.kokuu-apple:not(.layout-top-nav) .main-header.navbar > .navbar-nav {
-    flex: 0 0 auto;
-  }
-  body.kokuu-apple:not(.layout-top-nav) .main-header.navbar > .navbar-nav.ml-auto {
-    /* ml-auto 在窄屏会把右侧功能全推到视口外，改为常规间距 */
-    margin-left: auto !important;
-    overflow-x: auto;
-    scrollbar-width: none;
-  }
-  body.kokuu-apple:not(.layout-top-nav) .main-header.navbar > .navbar-nav.ml-auto::-webkit-scrollbar {
-    display: none;
-  }
-
-  /* =========================================================
-     二、顶栏导航版布局（皮肤库 / skinlib）
+     一、顶栏导航版布局（/skinlib 等 layout-top-nav 页面）
      结构：.navbar-header(品牌) > .navbar-collapse(主导航) + .navbar-custom-menu(右侧)
-     这里必须**两层化**，否则主导航和右侧功能挤在一行必然溢出。
-
-     实现方式：把 .container 改成 flex-wrap: wrap 的两行容器，
-     第一行 = 品牌 + 自定义菜单（justify-content: space-between），
-     第二行 = .navbar-collapse 占满整行并横向滚动。
+     这里必须**两层化**，否则三者挤在一行必然溢出。
+       第一行：品牌 + 右侧功能区
+       第二行：.navbar-collapse 占满整行，横排 + 可横向滑动
      ========================================================= */
-  body.kokuu-apple.layout-top-nav .main-header.navbar > .container {
+  body.layout-top-nav .main-header.navbar > .container {
     flex-wrap: wrap;
     align-items: center;
     row-gap: 0;
   }
 
   /* 主导航：独占第二行，横排 + 可滑动 */
-  body.kokuu-apple.layout-top-nav .navbar-collapse {
+  body.layout-top-nav .main-header.navbar .navbar-collapse {
     /* 覆盖 .navbar-expand .navbar-collapse 的 flex-basis:auto，
        改为 100% 强制换行到第二行 */
     flex: 0 0 100%;
@@ -566,14 +555,14 @@ a:hover { color: var(--ink); }
     scrollbar-width: none;
     -ms-overflow-style: none;
   }
-  body.kokuu-apple.layout-top-nav .navbar-collapse::-webkit-scrollbar {
+  body.layout-top-nav .main-header.navbar .navbar-collapse::-webkit-scrollbar {
     display: none;
   }
-  body.kokuu-apple.layout-top-nav .navbar-collapse .navbar-nav {
+  body.layout-top-nav .main-header.navbar .navbar-collapse .navbar-nav {
     flex-wrap: nowrap;
     min-width: max-content;
   }
-  body.kokuu-apple.layout-top-nav .navbar-collapse .nav-link {
+  body.layout-top-nav .main-header.navbar .navbar-collapse .nav-link {
     padding: 0.5rem 0.85rem !important;
     font-size: 14px;
     white-space: nowrap;
@@ -585,24 +574,45 @@ a:hover { color: var(--ink); }
   }
 
   /* 右侧功能区（上传 / 通知 / 语言 / 用户）：第一行靠右 */
-  body.kokuu-apple.layout-top-nav .navbar-custom-menu {
+  body.layout-top-nav .main-header.navbar .navbar-custom-menu {
     margin-left: auto;
     order: 2;
   }
-  body.kokuu-apple.layout-top-nav .navbar-custom-menu > .navbar-nav {
+  body.layout-top-nav .main-header.navbar .navbar-custom-menu > .navbar-nav {
     flex-wrap: nowrap;
   }
 
-  /* 品牌区：第二行会让它显得孤立，给个最小宽度防挤压 */
-  body.kokuu-apple.layout-top-nav .navbar-header {
+  /* 品牌区：第一行左侧 */
+  body.layout-top-nav .main-header.navbar .navbar-header {
     order: 1;
     flex: 0 0 auto;
     margin-right: auto;
   }
-  body.kokuu-apple.layout-top-nav .navbar-brand {
+  body.layout-top-nav .main-header.navbar .navbar-brand {
     font-size: 16px;
     padding: 0;
     margin-right: 0;
+  }
+
+  /* =========================================================
+     二、侧栏版布局（/user、/admin 等 sidebar-mini 页面）
+     结构：<ul.navbar-nav>（汉堡） + <ul.navbar-nav.ml-auto>（右侧功能）
+     内容不多，横向排开即可，不需要两层化。
+     ========================================================= */
+  body.sidebar-mini .main-header.navbar {
+    flex-wrap: nowrap;
+    min-height: 52px;
+  }
+  body.sidebar-mini .main-header.navbar > .navbar-nav {
+    flex: 0 0 auto;
+  }
+  body.sidebar-mini .main-header.navbar > .navbar-nav.ml-auto {
+    margin-left: auto !important;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  body.sidebar-mini .main-header.navbar > .navbar-nav.ml-auto::-webkit-scrollbar {
+    display: none;
   }
 
   /* =========================================================
@@ -611,7 +621,7 @@ a:hover { color: var(--ink); }
   .main-header.navbar .nav-link {
     white-space: nowrap;
     border-radius: 8px !important;
-    /* 上面的行高统一，避免文字项与纯图标项高度不一 */
+    /* 统一行高，避免文字项与纯图标项高度不一 */
     min-height: 38px;
   }
   .main-header.navbar .nav-link > .fas,
@@ -647,7 +657,7 @@ a:hover { color: var(--ink); }
   }
 
   /* 皮肤库第二行导航再收窄一点，让「Skin Library」不被截太狠 */
-  body.kokuu-apple.layout-top-nav .navbar-collapse .nav-link {
+  body.layout-top-nav .main-header.navbar .navbar-collapse .nav-link {
     padding: 0.45rem 0.6rem !important;
     font-size: 13px;
   }
@@ -668,21 +678,47 @@ a:hover { color: var(--ink); }
 
 /* =========================================================
    移动端侧边栏
+   =========================================================
+   ⚠️ 这里**故意不做任何 width / max-width 改动**。
+
+   曾试过给 .main-sidebar 加 width:86vw 做「抽屉式限宽」，结果线上直接崩了：
+   用户反馈「左边多出一个空的栏」。
+
+   根因：AdminLTE 的 sidebar-mini 布局在移动端**不靠 width 折叠侧边栏**，
+   而是靠 margin-left 把整条侧边栏挪到屏幕外：
+
+       @media (max-width: 991.98px) {
+         .sidebar-mini .main-sidebar { margin-left: -250px; }
+         .sidebar-mini.sidebar-open .main-sidebar { margin-left: 0; }
+       }
+
+   我只改了 width 没碰 margin，于是：
+     - 原状态 margin-left:-250px → 侧边栏在屏幕外（看不到，正常）
+     - 但 width 被我改成 86vw 后，元素实际占据的位置变了，
+       再叠加 AdminLTE 对 .sidebar-mini 有 min-width/max-width 的处理，
+       最终留下一条贴在左边、内容空白的宽栏。
+
+   教训：**折叠/抽屉的开关是 margin，不是 width。**
+   要改侧边栏宽度就必须同时接管 margin 状态机，
+   属于要重写 AdminLTE 响应式逻辑的高风险改动 —— 收益不抵风险，不做。
+
+   内核侧边栏的移动端行为（汉堡按钮开关）保持 AdminLTE 原生，不碰。
+
+   ⚠️ 断点用 991.98px 而不是 992px：
+   app.css 里有 `@media (min-width: 992px)`，如果这里写 `max-width: 992px`，
+   两边会在**恰好 992px** 这个点同时命中，规则叠加顺序不确定，
+   会出现「偶发布局错乱且无法复现」。991.98 与 app.css 的
+   `@media (max-width: 991.98px)` 保持一致，断点边界才干净。
    ========================================================= */
-@media (max-width: 992px) {
-  /*
-   * AdminLTE 的侧边栏在移动端是「抽屉」：默认 translateX(-100%) 移出屏幕，
-   * 点汉堡按钮后加 .sidebar-open 类滑进来。
-   * 但它默认**占满整个视口宽度**，在手机上把内容全挡住，
-   * 且关闭手势不自然。这里限宽成抽屉式，露出一点内容提示可右滑关闭。
-   */
-  .main-sidebar {
-    max-width: 86vw;
-    width: 86vw !important;
-  }
+@media (max-width: 991.98px) {
   /*
    * 侧边栏导航项加大点击区：手机上手指粗，
    * AdminLTE 默认的 .55rem 上下内边距（约 17px 高）偏小，实测易误触相邻项。
+   *
+   * ⚠️ 只改内边距与字号，**不碰任何布局属性**
+   * （width / max-width / margin / transform / display）。
+   * 上面已说明：那条侧边栏的折叠状态机是 margin 驱动的，
+   * 碰它就会出「空的侧栏」。
    */
   .nav-sidebar .nav-link {
     padding: 0.7rem 0.9rem !important;
